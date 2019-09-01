@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp2.1;net46</TargetFrameworks>
+    <RootNamespace>LovettSoftware.SmartSockets.Interface</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartSockets\SmartSockets.csproj" />
+  </ItemGroup>
+
+</Project>
