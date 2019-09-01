@@ -56,7 +56,8 @@ namespace LovettSoftware.SmartSockets
         public string Name { get; set; }
 
         /// <summary>
-        /// Find a SmartSocketListener on the local network using UDP broadcast.
+        /// Find a SmartSocketServer on the local network using UDP broadcast.  This will block
+        /// waiting for a server to respond or until you cancel using the CancellationToken.
         /// </summary>
         /// <returns>The connected client or null if task is cancelled.</returns>
         public static async Task<SmartSocketClient> FindServerAsync(string serviceName, string clientName, SmartSocketTypeResolver resolver, CancellationToken token,
