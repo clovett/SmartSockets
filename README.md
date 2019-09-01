@@ -2,18 +2,18 @@
 
 This is a very small and super simple socket library.  It provides a SmartSocketServer
 that provides discovery over UDP and SmartSocketClient that can discover the server so
-there's no message about with ip addresses and ports.  All message serialization is done with
+there's no need to mess about with ip addresses and ports.  All message serialization is done with
 DataContractSerializer with support for custom types.  It is also fast, with round trip
 times under 1 millisecond.
 
 ### SmartSocketServer
 
 This class sets up a UDP broadcaster so clients on the same network can find the server by
-a given string name, no fussing about with ip addresses and ports.  It then listens for
-new clients to connect and spins off ClientConnected messages so your app can process the
+a given string name.  It then listens for
+new clients to connect and raises `ClientConnected` messages so your app can process the
 server side of each conversation.  Your application server then can handle any number of
 clients at the same time, each client will have their own SmartSocketClient on different ports.
-If the client goes away, the ClientDisconnected event is raised so the server can cleanup.
+If the client goes away, the `ClientDisconnected` event is raised so the server can cleanup.
 
 ### SmartSocketClient
 
