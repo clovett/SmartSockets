@@ -2,7 +2,7 @@
 
 This is a very small and super simple socket library.  It provides a SmartSocketServer
 that provides discovery over UDP and SmartSocketClient that can discover the server so
-there's no message about with ip addresses and ports.  All message serialization is done with 
+there's no message about with ip addresses and ports.  All message serialization is done with
 DataContractSerializer with support for custom types.  It is also fast, with round trip
 times under 1 millisecond.
 
@@ -18,23 +18,23 @@ If the client goes away, the ClientDisconnected event is raised so the server ca
 ### SmartSocketClient
 
 This class provides a static `FindServerAsync` method to find the SmartSocketServer and
-returns a connected SmartSocketClient.  The server will raise a ClientDisconnected event
+returns a connected SmartSocketClient.  The server will raise a ClientConnected event
 when this happens so your server application can handle the new client.
-From there you can do simple send/receive calls using
+From there you can do simple send/receive calls using:
 ```c#
 public async Task<SocketMessage> SendReceiveAsync(SocketMessage msg)
 ```
 Or you can do more complicated protocols using `SendAsync` and `ReceiveAsync`.  When this
 SmartSocketClient object is disposed it automatically disconnects from the server and
-the server raises a ClientDisconnected event.
-
+the server raises a ClientDisconnected event.  There is only one socket behind this so
+you cannot do independent bidirectional communication so the client and server have to
+agree on who is going to do the next send.
 
 ### SocketMessage
 
-This is a simple base class that shows you how to create a custom message object for exchanging
-between client and server.  Messages are serialized using the DataContractSerializer with the
+This is a simple base class that shows you how to create a custom message object using DataContracs.
+Messages are serialized using the DataContractSerializer with the
 serializer configured to support `PreserveObjectReferences = true` so you can serialize graphs.
-The following is the base class for all SmartSocketClient  messages:
 
 ```c#
     [DataContract]
@@ -111,7 +111,9 @@ private async void HandleClientAsync(SmartSocketClient client)
 ### Example Client
 
 Creating a client is simple.  First you need a CancellationTokenSource for the
-async calls, then you call `FindServerAsync`:
+async calls, then you call `FindServerAsync` passing the unique name you gave
+your server, in this case `TestServer`, this way your client will connect to the
+right server in case you have multiple servers running on your network:
 
 ```c#
 const string name = "client1";
