@@ -3,6 +3,15 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.1;net46</TargetFrameworks>
     <RootNamespace>LovettSoftware.SmartSockets</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Chris Lovett</Authors>
+    <Company>LovettSoftware</Company>
+    <PackageId>LovettSoftware.SmartSockets</PackageId>
+    <Description>A simper simple socket library consisting of SmartSocketServer and SmartSocketClient.</Description>
+    <Copyright>LovettSoftware 2019</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/clovett/SmartSockets</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/clovett/SmartSockets</RepositoryUrl>
   </PropertyGroup>
 
 </Project>

@@ -1,6 +1,10 @@
 ## Smart Sockets
 
-This is a very small and super simple socket library.
+This is a very small and super simple socket library.  It provides a SmartSocketServer
+that provides discovery over UDP and SmartSocketClient that can discover the server so
+there's no message about with ip addresses and ports.  All message serialization is done with 
+DataContractSerializer with support for custom types.  It is also fast, with round trip
+times under 1 millisecond.
 
 ### SmartSocketServer
 
@@ -150,4 +154,4 @@ Received message 'Howdy partner 9' from 'client1' at '9/1/2019 2:01:13 AM'
 Client 'client1' has gone bye bye...
 ```
 
-The round trip for messages (without any Console.WriteLine) is about 0.5 milliseconds.
+The round trip for messages (without any Console.WriteLine) is about 0.25 milliseconds.
