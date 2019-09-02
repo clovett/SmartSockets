@@ -22,10 +22,10 @@ namespace LovettSoftware.SmartSockets.TestServer
 
         void Start()
         {
-            SmartSocketServer server = new SmartSocketServer(Name, new SmartSocketTypeResolver(typeof(ServerMessage), typeof(ClientMessage)));
+            SmartSocketServer server = SmartSocketServer.StartServer(Name, new SmartSocketTypeResolver(typeof(ServerMessage), typeof(ClientMessage)));
             server.ClientConnected += OnClientConnected;
             server.ClientDisconnected += OnClientDisconnected;
-            server.StartListening();
+            server.BackChannelOpened += OnBackChannelOpened;
 
             Console.WriteLine("Press any key to terminate...");
             Console.ReadLine();
@@ -41,6 +41,15 @@ namespace LovettSoftware.SmartSockets.TestServer
             e.Error += OnClientError;
             Console.WriteLine("Client '{0}' is connected", e.Name);
             Task.Run(() => HandleClientAsync(e));
+        }
+
+        private async void OnBackChannelOpened(object sender, SmartSocketClient e)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var response = await e.SendReceiveAsync(new SocketMessage("BackChannelRequest", Name) { Message = "backchannel request" });                
+                Console.WriteLine("Response from client is: " + response.Id);
+            }
         }
 
         private void OnClientError(object sender, Exception e)

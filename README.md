@@ -18,7 +18,7 @@ If the client goes away, the `ClientDisconnected` event is raised so the server 
 ### SmartSocketClient
 
 This class provides a static `FindServerAsync` method to find the SmartSocketServer and
-returns a connected SmartSocketClient.  The server will raise a ClientConnected event
+return a connected SmartSocketClient.  The server will raise a ClientConnected event
 when this happens so your server application can handle the new client.
 From there you can do simple send/receive calls using:
 ```c#
@@ -26,9 +26,25 @@ public async Task<SocketMessage> SendReceiveAsync(SocketMessage msg)
 ```
 Or you can do more complicated protocols using `SendAsync` and `ReceiveAsync`.  When this
 SmartSocketClient object is disposed it automatically disconnects from the server and
-the server raises a ClientDisconnected event.  There is only one socket behind this so
-you cannot do independent bidirectional communication so the client and server have to
-agree on who is going to do the next send.
+the server raises a ClientDisconnected event.  There is only one socket behind the SmartSocketClient so you cannot do independent bidirectional communication.
+This means your client and server have to
+agree on who is going to do the next send.  You could put a flag in your message that switches
+the `sender` role to the server and back to the client as needed.  But the simplest
+protocol is to have your client always initiate the send and if your client sends a `heartbeat`
+style message frequently, then this gives the server a chance to send a response with any
+special instructions for the client (like `stop`).
+
+To create bidirectional communication channels, use the following method:
+
+```c#
+public async Task<SmartSocketServer> OpenBackChannel();
+```
+
+This creates a server on the client side that the server can connect to.  This
+server does not use UDP discovery so it will only ever accept one socket connection.
+The client can then use this to receive out of band messages from the server which
+allows the server to send messages to the client any time it wants.  This gives you
+fully bidirectional communication.
 
 ### SocketMessage
 

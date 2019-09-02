@@ -37,12 +37,17 @@ namespace LovettSoftware.SmartSockets
         public event EventHandler<SmartSocketClient> ClientDisconnected;
 
         /// <summary>
+        /// Raised when client requests a back channel for server to communicate independently with the client
+        /// </summary>
+        public event EventHandler<SmartSocketClient> BackChannelOpened;
+
+        /// <summary>
         /// Construct a new SmartSocketServer.
         /// </summary>
         /// <param name="name">The name the client will check in UDP broadcasts to make sure it is connecting to the right server</param>
         /// <param name="resolver">A way of providing custom Message types for serialization</param>
         /// <param name="ipAddress">An optional ipAddress so you can decide which network interface to use</param>
-        public SmartSocketServer(string name, SmartSocketTypeResolver resolver, 
+        internal SmartSocketServer(string name, SmartSocketTypeResolver resolver, 
                                  string ipAddress = "127.0.0.1",
                                  string udpGroupAddress = "226.10.10.2",
                                  int udpGroupPort = 37992)
@@ -50,8 +55,11 @@ namespace LovettSoftware.SmartSockets
             this.serviceName = name;
             this.resolver = resolver;
             this.ipAddress = IPAddress.Parse(ipAddress);
-            this.GroupAddress = IPAddress.Parse(udpGroupAddress);
-            this.GroupPort = udpGroupPort;
+            if (!string.IsNullOrEmpty(udpGroupAddress))
+            {
+                this.GroupAddress = IPAddress.Parse(udpGroupAddress);
+                this.GroupPort = udpGroupPort;
+            }
         }
 
         /// <summary>
@@ -67,9 +75,24 @@ namespace LovettSoftware.SmartSockets
         /// <summary>
         /// Start listening for connections from anyone.
         /// </summary>
+        /// <param name="name">The unique name of the server</param>
+        /// <param name="resolver">For resolving custom message types received from the client</param>
+        /// <param name="ipAddress">Determines which local network interface to use</param>
+        /// <param name="udpGroupAddress">Optional request to setup UDP listener, pass null if you don't want that</param>
+        /// <param name="udpGroupPort">Optional port required if you provide udpGroupAddress</param>
         /// <returns>Returns the port number we are listening on (assigned by the system)</returns>
-        public int StartListening()
+        public static SmartSocketServer StartServer(string name, SmartSocketTypeResolver resolver,
+                                                     string ipAddress = "127.0.0.1",
+                                                     string udpGroupAddress = "226.10.10.2",
+                                                     int udpGroupPort = 37992)
         {
+            SmartSocketServer server = new SmartSocketServer(name, resolver, ipAddress, udpGroupAddress, udpGroupPort);
+            server.StartListening();
+            return server;
+        }
+
+        internal void StartListening()
+        { 
             this.listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPEndPoint ep = new IPEndPoint(this.ipAddress, 0);
             this.listener.Bind(ep);
@@ -81,12 +104,12 @@ namespace LovettSoftware.SmartSockets
             // now start a background thread to process incoming requests.
             Task.Run(this.Run);
 
-            // Start the UDP listener thread
-            Task.Run(this.UdpListenerThread);
-
-            return this.port;
+            if (this.GroupAddress != null)
+            {
+                // Start the UDP listener thread
+                Task.Run(this.UdpListenerThread);
+            }
         }
-
 
         private void UdpListenerThread()
         {
@@ -262,6 +285,23 @@ namespace LovettSoftware.SmartSockets
             lock (this.clients)
             {
                 this.clients.Clear();
+            }
+        }
+
+        internal async Task<bool> OpenBackChannel(SmartSocketClient client, int port)
+        {
+            if (BackChannelOpened != null)
+            {
+                IPEndPoint ipe = (IPEndPoint)(client.Socket.RemoteEndPoint);
+                IPEndPoint endPoint = new IPEndPoint(ipe.Address, port);
+                SmartSocketClient channel = await SmartSocketClient.ConnectAsync(endPoint, this.serviceName, this.resolver);
+                BackChannelOpened(this, channel);
+                return true;
+            }
+            else
+            {
+                // server is not expecting a backchannel!
+                return false;
             }
         }
     }

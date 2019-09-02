@@ -35,7 +35,9 @@ namespace LovettSoftware.SmartSockets
 
         public const string DisconnectMessageId = "DisconnectMessageId.3d9cd318-fcae-4a4f-ae63-34907be2700a";
         public const string ConnectedMessageId = "ConnectedMessageId.822280ed-26f5-4cdd-b45c-412e05d1005a";
-        public const string ConnectedMessageAck = "ConnectedMessageAck.822280ed-26f5-4cdd-b45c-412e05d1005a";
+        public const string MessageAck = "MessageAck.822280ed-26f5-4cdd-b45c-412e05d1005a";
+        public const string ErrorMessageId = "ErrorMessageId.385ff3c1-84d8-491a-a8b3-e2a9e8f0e256";
+        public const string OpenBackChannelMessageId = "OpenBackChannel.bd89da83-95c8-42e7-bf4e-6e7d0168754a";
 
         internal SmartSocketClient(SmartSocketServer server, Socket client, SmartSocketTypeResolver resolver)
         {
@@ -121,7 +123,30 @@ namespace LovettSoftware.SmartSockets
             });
         }
 
-        private static async Task<SmartSocketClient> ConnectAsync(IPEndPoint serverEP, string clientName, SmartSocketTypeResolver resolver)
+        /// <summary>
+        /// Create another socket that will allow the server to send messages to us any time.
+        /// It is expected you will start a ReceiveAsync loop on this server object to process
+        /// those messages.
+        /// </summary>
+        /// <param name="connectedHandler">An event handler to invoke when the server opens the back channel</param>
+        /// <returns></returns>
+        public async Task<SmartSocketServer> OpenBackChannel(EventHandler<SmartSocketClient> connectedHandler)
+        {
+            IPEndPoint ipe = (IPEndPoint)this.Socket.LocalEndPoint;
+            // start a new server that does not use UDP.
+            var server = SmartSocketServer.StartServer(this.Name, this.resolver, ipe.Address.ToString(), null, 0);
+            server.ClientConnected += connectedHandler;
+            int port = server.Port;
+            // tell the server we've opened another channel and pass the "port" number
+            var response = await this.SendReceiveAsync(new SocketMessage(OpenBackChannelMessageId, this.Name + ":" + port));
+            if (response.Id == ErrorMessageId)
+            {
+                throw new InvalidOperationException(response.Message);
+            }
+            return server;
+        }
+
+        internal static async Task<SmartSocketClient> ConnectAsync(IPEndPoint serverEP, string clientName, SmartSocketTypeResolver resolver)
         {
             Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             bool connected = false;
@@ -280,6 +305,11 @@ namespace LovettSoftware.SmartSockets
                     this.closed = true;
                 }
 
+                if (ex is ObjectDisposedException)
+                {
+                    this.closed = true;
+                }
+
                 inner = inner.InnerException;
             }
 
@@ -418,13 +448,16 @@ namespace LovettSoftware.SmartSockets
                         {
                             // client is politely saying good bye...
                             this.OnClosed();
-                            msg = null;
                         }
                         else if (msg.Id == ConnectedMessageId)
                         {
                             this.Name = msg.Sender;
-                            await this.SendAsync(new SocketMessage(ConnectedMessageAck, this.Name));
-                            msg = null;
+                            await this.SendAsync(new SocketMessage(MessageAck, this.Name));
+                        }
+                        else if (msg.Id == OpenBackChannelMessageId && this.server != null)
+                        {
+                            // client is requesting a back channel.
+                            await HandleBackchannelRequest(msg);
                         }
                     }
                 }
@@ -444,9 +477,33 @@ namespace LovettSoftware.SmartSockets
             catch (Exception ex)
             {
                 this.OnError(ex);
-            }
+            }        
 
             return msg;
+        }
+
+        private async Task HandleBackchannelRequest(SocketMessage msg)
+        {
+            string[] parts = msg.Sender.Split(':');
+            if (parts.Length == 2)
+            {
+                int port = 0;
+                if (int.TryParse(parts[1], out port))
+                {
+                    bool rc = await this.server.OpenBackChannel(this, port);
+                    if (rc)
+                    {
+                        await this.SendAsync(new SocketMessage(MessageAck, this.Name));
+                    }
+                    else
+                    {
+                        await this.SendAsync(new SocketMessage(ErrorMessageId, this.Name)
+                        {
+                            Message = "Server is not expecting a back channel"
+                        });
+                    }
+                }
+            }
         }
 
         public void Dispose()

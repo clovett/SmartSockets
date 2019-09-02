@@ -31,5 +31,14 @@ namespace LovettSoftware.SmartSockets
         /// </summary>
         [DataMember]
         public string Sender { get; set; }
+
+
+        /// <summary>
+        /// An optional string message
+        /// </summary>
+        [DataMember]
+        public string Message { get; set; }
+
+
     }
 }

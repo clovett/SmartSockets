@@ -19,14 +19,23 @@ namespace LovettSoftware.SmartSockets.TestClient
             Console.WriteLine("Starting Client!");
 
             Program p = new Program();
-            p.RunTest().Wait();
+            try
+            {
+                p.RunTest().Wait();
+            } 
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+            }
         }
 
         string name = "client1";
+        CancellationTokenSource source;
+        int backChannelMessages;
 
         private async Task RunTest()
         {
-            CancellationTokenSource source = new CancellationTokenSource();
+            this.source = new CancellationTokenSource();
             using (SmartSocketClient client = await SmartSocketClient.FindServerAsync("TestServer", name, new SmartSocketTypeResolver(typeof(ServerMessage), typeof(ClientMessage)), source.Token))
             {
                 client.Error += OnClientError;
@@ -49,6 +58,34 @@ namespace LovettSoftware.SmartSockets.TestClient
                 watch.Stop();
 
                 Console.WriteLine("Sent 1000 messages in {0} milliseconds", watch.ElapsedMilliseconds);
+
+                var server = await client.OpenBackChannel(OnBackChannelOpened);
+                while (backChannelMessages < 10)
+                {
+                    await Task.Delay(10);
+                }
+
+            }
+            this.source.Cancel();
+        }
+
+        private void OnBackChannelOpened(object sender, SmartSocketClient e)
+        {
+            _ = Task.Run(() => HandleBackChannel(e));
+        }
+
+        private async void HandleBackChannel(SmartSocketClient server)
+        {
+            CancellationToken token = this.source.Token;
+            while (!token.IsCancellationRequested && server.IsConnected)
+            {
+                var msg = await server.ReceiveAsync();
+                if (msg != null)
+                {
+                    backChannelMessages++;
+                    Console.WriteLine("Client received backchannel message from server '{0}': {1}", msg.Sender, msg.Id);
+                    await server.SendAsync(new SocketMessage("Backchannel message received", this.name) { Message = msg.Message });
+                }
             }
         }
 
@@ -56,8 +93,14 @@ namespace LovettSoftware.SmartSockets.TestClient
         {
             var saved = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(e.Message);
-            Console.ForegroundColor = saved;
+            try
+            {
+                Console.Error.WriteLine(e.Message);
+            }
+            finally
+            {
+                Console.ForegroundColor = saved;
+            }
         }
     }
 }
