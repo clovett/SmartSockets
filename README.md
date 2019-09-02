@@ -6,6 +6,10 @@ there's no need to mess about with ip addresses and ports.  All message serializ
 DataContractSerializer with support for custom types.  It is also fast, with round trip
 times under 1 millisecond.
 
+### Installation
+
+This package is provided on [nuget.org](https://www.nuget.org/packages/LovettSoftware.SmartSockets/).
+
 ### SmartSocketServer
 
 This class sets up a UDP broadcaster so clients on the same network can find the server by
