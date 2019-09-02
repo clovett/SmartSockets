@@ -256,6 +256,12 @@ namespace LovettSoftware.SmartSockets
         public bool IsConnected => !this.closed;
 
         /// <summary>
+        /// If OpenBackChannel is called, and the server supports it then this property will
+        /// be defined when that channel is connected.
+        /// </summary>
+        public SmartSocketClient BackChannel { get; internal set; }
+
+        /// <summary>
         /// This event is raised if a socket error is detected.
         /// </summary>
         public event EventHandler<Exception> Error;
@@ -494,6 +500,7 @@ namespace LovettSoftware.SmartSockets
                     if (rc)
                     {
                         await this.SendAsync(new SocketMessage(MessageAck, this.Name));
+                        return;
                     }
                     else
                     {
@@ -501,9 +508,14 @@ namespace LovettSoftware.SmartSockets
                         {
                             Message = "Server is not expecting a back channel"
                         });
+                        return;
                     }
                 }
             }
+            await this.SendAsync(new SocketMessage(ErrorMessageId, this.Name)
+            {
+                Message = "Valid port number was not found in backchannel message"
+            });
         }
 
         public void Dispose()

@@ -295,6 +295,7 @@ namespace LovettSoftware.SmartSockets
                 IPEndPoint ipe = (IPEndPoint)(client.Socket.RemoteEndPoint);
                 IPEndPoint endPoint = new IPEndPoint(ipe.Address, port);
                 SmartSocketClient channel = await SmartSocketClient.ConnectAsync(endPoint, this.serviceName, this.resolver);
+                client.BackChannel = channel;
                 BackChannelOpened(this, channel);
                 return true;
             }
