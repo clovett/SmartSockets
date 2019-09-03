@@ -129,7 +129,7 @@ namespace LovettSoftware.SmartSockets
         /// those messages.
         /// </summary>
         /// <param name="connectedHandler">An event handler to invoke when the server opens the back channel</param>
-        /// <returns></returns>
+        /// <returns>New server object that will get one ClientConnected event when server connects</returns>
         public async Task<SmartSocketServer> OpenBackChannel(EventHandler<SmartSocketClient> connectedHandler)
         {
             IPEndPoint ipe = (IPEndPoint)this.Socket.LocalEndPoint;
@@ -279,7 +279,7 @@ namespace LovettSoftware.SmartSockets
             }
             try
             {
-                await this.SendReceiveAsync(new SocketMessage(DisconnectMessageId, this.Name));
+                await this.SendAsync(new SocketMessage(DisconnectMessageId, this.Name));
 
                 using (this.client)
                 {
@@ -463,14 +463,14 @@ namespace LovettSoftware.SmartSockets
                         else if (msg.Id == OpenBackChannelMessageId && this.server != null)
                         {
                             // client is requesting a back channel.
-                            await HandleBackchannelRequest(msg);
+                            await this.HandleBackchannelRequest(msg);
                         }
                     }
                 }
             }
             catch (EndOfStreamException eos)
             {
-                this.OnError(eos);
+                this.OnClosed();
             }
             catch (System.IO.IOException ioe)
             {
@@ -493,8 +493,7 @@ namespace LovettSoftware.SmartSockets
             string[] parts = msg.Sender.Split(':');
             if (parts.Length == 2)
             {
-                int port = 0;
-                if (int.TryParse(parts[1], out port))
+                if (int.TryParse(parts[1], out int port))
                 {
                     bool rc = await this.server.OpenBackChannel(this, port);
                     if (rc)

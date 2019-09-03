@@ -45,10 +45,14 @@ namespace LovettSoftware.SmartSockets.TestServer
 
         private async void OnBackChannelOpened(object sender, SmartSocketClient e)
         {
+            Console.WriteLine("OnBackChannelOpened '{0}'", e.Name);
             for (int i = 0; i < 10; i++)
             {
-                var response = await e.SendReceiveAsync(new SocketMessage("BackChannelRequest", Name) { Message = "backchannel request" });                
-                Console.WriteLine("Response from client is: " + response.Id);
+                var response = await e.BackChannel.SendReceiveAsync(new SocketMessage("BackChannelRequest", Name) { Message = "backchannel request" });
+                if (response != null)
+                {
+                    Console.WriteLine("Response from client is: " + response.Id);
+                }
             }
         }
 

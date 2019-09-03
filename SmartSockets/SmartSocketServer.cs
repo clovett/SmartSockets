@@ -32,22 +32,30 @@ namespace LovettSoftware.SmartSockets
         private readonly SmartSocketTypeResolver resolver;
         private UdpClient udpListener;
 
+        /// <summary>
+        /// Raised when a new client is connected
+        /// </summary>
         public event EventHandler<SmartSocketClient> ClientConnected;
 
+        /// <summary>
+        /// Raised when the given client disconnects
+        /// </summary>
         public event EventHandler<SmartSocketClient> ClientDisconnected;
 
         /// <summary>
         /// Raised when client requests a back channel for server to communicate independently with the client
+        /// The given SmartSocketClient will have a BackChannel property set to a new SmartSocketClient that
+        /// the server can use to send messages to the client.
         /// </summary>
         public event EventHandler<SmartSocketClient> BackChannelOpened;
 
         /// <summary>
-        /// Construct a new SmartSocketServer.
+        /// Initializes a new instance of the <see cref="SmartSocketServer"/> class.
         /// </summary>
         /// <param name="name">The name the client will check in UDP broadcasts to make sure it is connecting to the right server</param>
         /// <param name="resolver">A way of providing custom Message types for serialization</param>
         /// <param name="ipAddress">An optional ipAddress so you can decide which network interface to use</param>
-        internal SmartSocketServer(string name, SmartSocketTypeResolver resolver, 
+        private SmartSocketServer(string name, SmartSocketTypeResolver resolver, 
                                  string ipAddress = "127.0.0.1",
                                  string udpGroupAddress = "226.10.10.2",
                                  int udpGroupPort = 37992)
@@ -73,14 +81,14 @@ namespace LovettSoftware.SmartSockets
         public int GroupPort { get; internal set; }
 
         /// <summary>
-        /// Start listening for connections from anyone.
+        /// Start a new server that listens for connections from anyone.
         /// </summary>
         /// <param name="name">The unique name of the server</param>
         /// <param name="resolver">For resolving custom message types received from the client</param>
         /// <param name="ipAddress">Determines which local network interface to use</param>
         /// <param name="udpGroupAddress">Optional request to setup UDP listener, pass null if you don't want that</param>
         /// <param name="udpGroupPort">Optional port required if you provide udpGroupAddress</param>
-        /// <returns>Returns the port number we are listening on (assigned by the system)</returns>
+        /// <returns>Returns the new server object</returns>
         public static SmartSocketServer StartServer(string name, SmartSocketTypeResolver resolver,
                                                      string ipAddress = "127.0.0.1",
                                                      string udpGroupAddress = "226.10.10.2",
@@ -91,6 +99,9 @@ namespace LovettSoftware.SmartSockets
             return server;
         }
 
+        /// <summary>
+        /// Start listening for connections from anyone.
+        /// </summary>
         internal void StartListening()
         { 
             this.listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -162,7 +173,7 @@ namespace LovettSoftware.SmartSockets
 
             foreach (var client in snapshot)
             {
-                await client.SendReceiveAsync(message);
+                await client.SendAsync(message);
             }
         }
 
@@ -296,7 +307,7 @@ namespace LovettSoftware.SmartSockets
                 IPEndPoint endPoint = new IPEndPoint(ipe.Address, port);
                 SmartSocketClient channel = await SmartSocketClient.ConnectAsync(endPoint, this.serviceName, this.resolver);
                 client.BackChannel = channel;
-                BackChannelOpened(this, channel);
+                this.BackChannelOpened(this, client);
                 return true;
             }
             else
